@@ -152,13 +152,6 @@ h1 em, h2 em { color: var(--orange); font-weight: 400; }
 .menu-search { display: flex; min-width: 165px; align-items: center; gap: 8px; border-bottom: 1px solid #d8d1c5; padding: 7px 0; color: #77776e; }
 .menu-search input { width: 100%; border: 0; outline: none; background: transparent; color: var(--ink); font-size: 11px; }
 .menu-search input::placeholder { color: #929187; }
-.jain-toggle { display: flex; min-height: 44px; align-items: center; gap: 8px; color: #68695f; font-size: 10px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.jain-toggle input { position: absolute; opacity: 0; }
-.toggle-track { position: relative; width: 31px; height: 17px; border-radius: 99px; background: #d8d3c6; transition: background .2s; }
-.toggle-track::after { position: absolute; top: 3px; left: 3px; width: 11px; height: 11px; border-radius: 50%; background: #fff; content: ''; transition: transform .2s; }
-.jain-toggle input:checked + .toggle-track { background: var(--green); }
-.jain-toggle input:checked + .toggle-track::after { transform: translateX(14px); }
-.jain-toggle input:focus-visible + .toggle-track { outline: 2px solid var(--turquoise); outline-offset: 2px; }
 .dish-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 52px; }
 .dish-card { display: flex; min-height: 120px; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 18px 0; transition: background .25s, padding .25s; }
 .dish-card.dish-added { padding-inline: 8px; background: #eff4e8; }
@@ -167,7 +160,6 @@ h1 em, h2 em { color: var(--orange); font-weight: 400; }
 .dish-title-row h3 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 400; line-height: 1.15; }
 .dish-title-row .veg-mark { width: 12px; height: 12px; }
 .dish-title-row .veg-mark::after { top: 2.5px; left: 2.5px; width: 5px; height: 5px; }
-.jain-label { border: 1px solid #d5c79c; border-radius: 3px; padding: 1px 4px; color: #817340; font-size: 7px; font-weight: 700; letter-spacing: .08em; }
 .dish-info p { margin: 6px 0 7px 20px; color: #7a7a70; font-size: 10px; line-height: 1.5; }
 .dish-info > strong { margin-left: 20px; color: var(--green); font-size: 12px; }
 .dish-action { position: relative; display: grid; min-width: 66px; justify-items: end; }
@@ -484,3 +476,53 @@ h1 em, h2 em { color: var(--orange); font-weight: 400; }
 
 /* round WhatsApp button on phones so it never covers content */
 @media (max-width: 640px) { .floating-whatsapp { width: 52px; height: 52px; min-height: 52px; padding: 0; justify-content: center; } .floating-whatsapp span { display: none; } .floating-whatsapp svg { width: 24px; height: 24px; } }
+
+/* Full menu: Marathi names, notes, variants, group banners, sections */
+.dish-info p.dish-note { margin-top: -4px; font-style: italic; }
+.variant-toggle { display: inline-flex; margin: 0 0 0 20px; overflow: hidden; border: 1px solid #c4d0c0; border-radius: 5px; vertical-align: middle; }
+.variant-toggle button { min-height: 30px; border: 0; padding: 0 9px; background: transparent; color: #67685e; font-size: 10px; font-weight: 600; cursor: pointer; }
+.variant-toggle button + button { border-left: 1px solid #c4d0c0; }
+.variant-toggle button.active { background: var(--green); color: #fff; }
+.variant-toggle + strong { margin-left: 10px !important; vertical-align: middle; }
+.menu-page-section > .menu-heading-note { margin: 0 0 18px; }
+.menu-banner { position: relative; display: flex; min-height: 150px; align-items: flex-end; justify-content: space-between; gap: 16px; overflow: hidden; margin: 22px 0 8px; border-radius: var(--radius); padding: 22px 26px; background: var(--green); color: #fffdf5; }
+.menu-banner::before { position: absolute; inset: 0; background-image: radial-gradient(circle at 1px 1px, #ffffff1c 1px, transparent 1.5px); background-size: 14px 14px; content: ''; }
+.menu-banner::after { position: absolute; top: -90px; right: -70px; width: 280px; height: 280px; border-radius: 50%; background: radial-gradient(circle, var(--banner-accent) 0, transparent 68%); opacity: .45; content: ''; }
+.menu-banner-photo::before { z-index: 1; background: linear-gradient(0deg, #1f3d2bd9 0%, #1f3d2b33 70%); }
+.menu-banner-photo::after { display: none; }
+.menu-banner > .photo-frame { position: absolute; inset: 0; }
+.menu-banner-copy, .menu-banner > .palm-mark, .menu-banner-caption { position: relative; z-index: 2; }
+.menu-banner-copy h2 { margin: 6px 0 0; font-size: clamp(30px, 4vw, 44px); }
+.menu-banner-caption { color: #e5e5d8; font-size: 9px; font-style: italic; }
+.menu-block { padding-top: 30px; scroll-margin-top: 90px; }
+.menu-block-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.menu-block-head h3 { margin: 0; color: var(--green); font-family: var(--font-display); font-size: 28px; font-weight: 400; line-height: 1.15; }
+.menu-block-head p { margin: 0; color: var(--muted); font-size: 11px; font-style: italic; }
+.menu-results-count { margin: 16px 0 0; color: var(--muted); font-size: 11px; }
+/* Evenings band (home) */
+.evenings-band { position: relative; display: flex; width: min(1240px, calc(100% - 48px)); min-height: 460px; margin: 80px auto 0; border-radius: var(--radius); align-items: center; overflow: hidden; background: var(--green); color: #fffdf5; }
+.evenings-band > .photo-frame { position: absolute; inset: 0; }
+.evenings-band > .photo-frame .photo-image { object-position: center 55%; }
+.evenings-band::after { position: absolute; inset: 0; background: linear-gradient(90deg, #1f3d2bf0 0%, #1f3d2bb3 42%, #1f3d2b33 100%); content: ''; }
+.evenings-band-copy { position: relative; z-index: 1; }
+.evenings-band-copy h2 { margin: 12px 0 10px; }
+.evenings-band-copy h2 em { color: #f1bd78; }
+.evenings-band-copy p { max-width: 380px; margin-bottom: 24px; color: #e5e5d8; font-size: 14px; }
+/* Visit: entrance photo beside the map */
+.visit-media { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
+.visit-photo { height: 400px; overflow: hidden; border: 7px solid #fffcf5; box-shadow: 0 14px 44px #382d1d14; }
+.banquet-hero-photo .photo-image { object-position: center 42% !important; }
+/* Gallery: third row for the night photos */
+.gallery-grid { height: 705px; grid-template-rows: 1fr 1fr 1fr; }
+.gallery-tile-7 { grid-column: 1; grid-row: 3; }.gallery-tile-8 { grid-column: 2 / 4; grid-row: 3; }.gallery-tile-9 { grid-column: 4; grid-row: 3; }
+/* Keep the round WhatsApp button clear of the cart bar */
+body:has(.cart-bar) .floating-whatsapp { bottom: 106px; }
+@media (max-width: 1020px) { .gallery-grid { height: 585px; } }
+@media (max-width: 760px) {
+  .menu-banner { min-height: 120px; margin-top: 16px; padding: 18px; }.menu-banner-copy h2 { font-size: 30px; }
+  .menu-block { padding-top: 24px; scroll-margin-top: 74px; }.menu-block-head h3 { font-size: 24px; }
+  .evenings-band { width: calc(100% - 36px); min-height: 420px; margin-top: 64px; align-items: flex-end; padding-bottom: 46px; }.evenings-band::after { background: linear-gradient(0deg, #1f3d2bf2 0%, #1f3d2bb3 45%, #1f3d2b26 100%); }.evenings-band-copy h2 { font-size: 41px; }.evenings-band-copy p { font-size: 12px; }
+  .visit-media { grid-template-columns: 1fr; }.visit-photo { height: 260px; border-width: 5px; }
+  .gallery-grid { height: 760px; grid-template-rows: 1.2fr .8fr 1fr 1fr 1fr; }.gallery-tile-7 { grid-column: 1; grid-row: 4; }.gallery-tile-8 { grid-column: 2; grid-row: 4; }.gallery-tile-9 { grid-column: 1 / 3; grid-row: 5; }
+  body:has(.cart-bar) .floating-whatsapp { bottom: 92px; }
+}

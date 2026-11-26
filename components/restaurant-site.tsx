@@ -4,8 +4,9 @@ import Image from "next/image"
 import Link from "next/link"
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowRight, Camera, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Menu as MenuIcon, Minus, Phone, Plus, Search, Star, Users, X } from "lucide-react"
-import { categories, dishes, eventOccasions, packages, photos, restaurant, venues, type MenuCategory } from "@/data/restaurant"
+import { ArrowDown, ArrowRight, Camera, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Menu as MenuIcon, Minus, Phone, Plus, Search, Star, Users, X } from "lucide-react"
+import { eventOccasions, menuBanners, packages, photos, restaurant, venues } from "@/data/restaurant"
+import { itemId, menu, menuGroups, type MenuGroup, type MenuItem } from "@/data/menu"
 import { SwayingPalm } from "@/components/swaying-palm"
 
 const wa = (message: string) => `https://wa.me/${restaurant.whatsapp}?text=${encodeURIComponent(message)}`
@@ -66,7 +67,8 @@ function OpenStatus() {
   return <span className={`status-chip ${open ? "is-open" : ""}`}><span className="status-dot" />{open ? "Open now · closes 11:30 PM" : "Closed · opens 8:00 AM"}</span>
 }
 
-function Header() {
+/** `solid`: start with the cream bar and dark text, for pages whose first section is light (no photo hero). */
+function Header({ solid = false }: { solid?: boolean }) {
   const [scrolled, setScrolled] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   useEffect(() => {
@@ -75,7 +77,7 @@ function Header() {
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
-  return <header className={`site-header ${scrolled ? "header-solid" : ""}`}>
+  return <header className={`site-header ${solid || scrolled ? "header-solid" : ""}`}>
     <Link href="/" className="brand" aria-label="Hotel Palm Paradise home"><PalmMark /><span><b>Palm Paradise</b><small>KOPARGAON · MAHARASHTRA</small></span></Link>
     <button className="mobile-menu-button" onClick={() => setNavOpen(!navOpen)} aria-label={navOpen ? "Close navigation" : "Open navigation"} aria-expanded={navOpen}>{navOpen ? <X /> : <MenuIcon />}</button>
     <nav className={`main-nav ${navOpen ? "nav-open" : ""}`} aria-label="Main navigation">
@@ -171,26 +173,115 @@ function TerraceSection() {
   </section>
 }
 
-function MenuSection({ full = false }: { full?: boolean }) {
-  const [category, setCategory] = useState<MenuCategory>("Soups & starters")
-  const [search, setSearch] = useState("")
-  const [jainOnly, setJainOnly] = useState(false)
+const dishCount = menu.reduce((sum, section) => sum + section.items.length, 0)
+const priceNote = "Prices as per our menu card · please confirm with our staff"
+const normalise = (text: string) => text.normalize("NFC").toLowerCase()
+
+/** Every orderable line (item, or item + variant) by cart id. */
+const cartLines = new Map<string, { name: string; price: number }>()
+for (const section of menu) for (const item of section.items) {
+  if (item.variants) for (const v of item.variants) cartLines.set(itemId(section.id, item.name, v.label), { name: `${item.name} (${v.label})`, price: v.price })
+  else cartLines.set(itemId(section.id, item.name), { name: item.name, price: item.price })
+}
+
+const searchIndex = menu.map((section) => ({ section, items: section.items.map((item) => ({ item, text: normalise(`${item.name} ${item.nameMr} ${item.note ?? ""}`) })) }))
+
+const favouriteNames = ["Palm Special", "Paneer Khas", "Paneer Butter Masala (Sweet)", "Veg Maratha (Black Gravy)", "Misal Pav", "Masala Dosa", "Veg Dum Biryani", "Mango Milk Shake"]
+const favourites = favouriteNames.flatMap((name) => {
+  for (const section of menu) { const item = section.items.find((i) => i.name === name); if (item) return [{ sectionId: section.id, item }] }
+  return []
+})
+
+function useCart() {
   const [cart, setCart] = useState<Record<string, number>>({})
   const [added, setAdded] = useState("")
-  const filtered = useMemo(() => dishes.filter((dish) => dish.category === category && (!jainOnly || dish.jain) && `${dish.name} ${dish.description}`.toLowerCase().includes(search.toLowerCase())), [category, full, jainOnly, search])
-  const count = Object.values(cart).reduce((a, b) => a + b, 0)
-  const total = dishes.reduce((sum, dish) => sum + (cart[dish.id] || 0) * dish.price, 0)
+  const lines = Object.entries(cart).filter(([, qty]) => qty > 0)
+  const count = lines.reduce((sum, [, qty]) => sum + qty, 0)
+  const total = lines.reduce((sum, [id, qty]) => sum + (cartLines.get(id)?.price ?? 0) * qty, 0)
   function change(id: string, amount: number) { setCart((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + amount) })); if (amount > 0) { setAdded(id); window.setTimeout(() => setAdded(""), 600) } }
-  function order() { const list = dishes.filter((dish) => cart[dish.id]).map((dish) => `${dish.name} × ${cart[dish.id]} — ${formatPrice(dish.price * cart[dish.id])}`).join("\n"); window.open(wa(`Hello Hotel Palm Paradise! I'd like to place a takeaway order.\n\n${list}\n\nTotal: ${formatPrice(total)}\nName: [Your name]\nPickup time: [Preferred pickup time]`), "_blank", "noopener,noreferrer") }
-  return <section id="menu" className={`menu-section section-wrap ${full ? "menu-page-section" : ""}`}>
-    <div className="section-heading"><span className="eyebrow">A menu made for everyone</span><h2>Good things, <em>made veg.</em></h2><p>North Indian, South Indian and Chinese favourites — all made fresh, all vegetarian. Jain preparations available on request.</p><div className="menu-heading-note"><span className="veg-mark" /> 100% vegetarian <span className="note-divider">·</span> Jain food on request</div></div>
-    {!full && <div className="menu-controls"><div className="category-tabs" role="tablist" aria-label="Menu categories">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} role="tab" aria-selected={category === item} onClick={() => setCategory(item)}>{item}</button>)}</div><div className="menu-tools"><label className="menu-search"><Search size={16} /><input placeholder="Find a dish" aria-label="Search dishes" value={search} onChange={(e) => setSearch(e.target.value)} /></label><label className="jain-toggle"><input type="checkbox" checked={jainOnly} onChange={(e) => setJainOnly(e.target.checked)} /><span className="toggle-track" /> Jain options</label></div></div>}
-    {full && <div className="menu-tools menu-tools-full"><label className="menu-search"><Search size={16} /><input placeholder="Find a dish" aria-label="Search dishes" value={search} onChange={(e) => setSearch(e.target.value)} /></label><label className="jain-toggle"><input type="checkbox" checked={jainOnly} onChange={(e) => setJainOnly(e.target.checked)} /><span className="toggle-track" /> Jain options</label></div>}
-    {full && <div className="menu-category-list">{categories.map((item) => <button key={item} className={category === item ? "selected" : ""} onClick={() => setCategory(item)}>{item}<ArrowRight size={14} /></button>)}</div>}
-    <motion.div className="dish-grid" layout>{filtered.length ? filtered.map((dish, index) => <motion.article layout key={dish.id} className={`dish-card ${added === dish.id ? "dish-added" : ""}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.035 }}><div className="dish-info"><div className="dish-title-row"><span className="veg-mark" /><h3>{dish.name}</h3>{dish.jain && <span className="jain-label">JAIN</span>}</div><p>{dish.description}</p><strong>{formatPrice(dish.price)}</strong></div><div className="dish-action">{cart[dish.id] ? <div className="qty-stepper"><button aria-label={`Remove one ${dish.name}`} onClick={() => change(dish.id, -1)}><Minus size={14} /></button><span>{cart[dish.id]}</span><button aria-label={`Add one ${dish.name}`} onClick={() => change(dish.id, 1)}><Plus size={14} /></button></div> : <button className="dish-add" onClick={() => change(dish.id, 1)}>Add <Plus size={13} /></button>}{added === dish.id && <span className="added-pop">+1</span>}</div></motion.article>) : <p className="empty-menu">No dishes found. Try another search.</p>}</motion.div>
-    {!full && <div className="menu-footer-link"><Link className="button button-outline" href="/menu">Explore the full menu <ArrowRight size={15} /></Link><span>Menu prices are indicative; please check with our team.</span></div>}
-    <AnimatePresence>{count > 0 && <motion.div className="cart-bar" initial={{ y: 90, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 90, opacity: 0 }} transition={{ type: "spring", stiffness: 330, damping: 27 }}><div className="cart-count"><span>{count}</span><small>{count === 1 ? "item" : "items"}</small></div><div className="cart-total">{formatPrice(total)}<small>Takeaway subtotal</small></div><button onClick={order}>Order on WhatsApp <ArrowRight size={15} /></button></motion.div>}</AnimatePresence>
+  function order() { const list = lines.flatMap(([id, qty]) => { const line = cartLines.get(id); return line ? [`${line.name} × ${qty} — ${formatPrice(line.price * qty)}`] : [] }).join("\n"); window.open(wa(`Hello Hotel Palm Paradise! I'd like to place a takeaway order.\n\n${list}\n\nTotal: ${formatPrice(total)}\nName: [Your name]\nPickup time: [Preferred pickup time]`), "_blank", "noopener,noreferrer") }
+  return { cart, added, count, total, change, order }
+}
+
+type Cart = ReturnType<typeof useCart>
+
+function DishCard({ sectionId, item, index, cart }: { sectionId: string; item: MenuItem; index: number; cart: Cart }) {
+  const [choice, setChoice] = useState(0)
+  const variant = item.variants?.[choice]
+  const id = itemId(sectionId, item.name, variant?.label)
+  const label = variant ? `${item.name} (${variant.label})` : item.name
+  const qty = cart.cart[id] || 0
+  return <motion.article className={`dish-card ${cart.added === id ? "dish-added" : ""}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index, 10) * 0.035 }}>
+    <div className="dish-info">
+      <div className="dish-title-row"><span className="veg-mark" /><h3>{item.name}</h3></div>
+      <p lang="mr">{item.nameMr}</p>
+      {item.note && <p className="dish-note">{item.note}</p>}
+      {item.variants && <div className="variant-toggle" role="group" aria-label={`${item.name} options`}>{item.variants.map((v, i) => { const inCart = cart.cart[itemId(sectionId, item.name, v.label)] || 0; return <button key={v.label} type="button" className={i === choice ? "active" : ""} aria-pressed={i === choice} onClick={() => setChoice(i)}>{v.label}{inCart > 0 && <span> · {inCart}</span>}</button> })}</div>}
+      <strong>{formatPrice(variant?.price ?? item.price)}</strong>
+    </div>
+    <div className="dish-action">{qty ? <div className="qty-stepper"><button aria-label={`Remove one ${label}`} onClick={() => cart.change(id, -1)}><Minus size={14} /></button><span>{qty}</span><button aria-label={`Add one ${label}`} onClick={() => cart.change(id, 1)}><Plus size={14} /></button></div> : <button className="dish-add" aria-label={`Add ${label}`} onClick={() => cart.change(id, 1)}>Add <Plus size={13} /></button>}{cart.added === id && <span className="added-pop">+1</span>}</div>
+  </motion.article>
+}
+
+function CartBar({ cart }: { cart: Cart }) {
+  return <AnimatePresence>{cart.count > 0 && <motion.div className="cart-bar" initial={{ x: "50%", y: 90, opacity: 0 }} animate={{ x: "50%", y: 0, opacity: 1 }} exit={{ x: "50%", y: 90, opacity: 0 }} transition={{ type: "spring", stiffness: 330, damping: 27 }}><div className="cart-count"><span>{cart.count}</span><small>{cart.count === 1 ? "item" : "items"}</small></div><div className="cart-total">{formatPrice(cart.total)}<small>Takeaway subtotal</small></div><button onClick={cart.order}>Order on WhatsApp <ArrowRight size={15} /></button></motion.div>}</AnimatePresence>
+}
+
+function MenuHeading() {
+  return <div className="section-heading"><span className="eyebrow">House favourites</span><h2>Good things, <em>made veg.</em></h2><p>From a breakfast misal to a late-night milkshake — North Indian, South Indian and Chinese, all made fresh, all vegetarian.</p><div className="menu-heading-note"><span className="veg-mark" /> 100% vegetarian <span className="note-divider">·</span> Jain food on request</div></div>
+}
+
+function MenuSection() {
+  const cart = useCart()
+  return <section id="menu" className="menu-section section-wrap">
+    <MenuHeading />
+    <div className="dish-grid">{favourites.map(({ sectionId, item }, index) => <DishCard key={itemId(sectionId, item.name)} sectionId={sectionId} item={item} index={index} cart={cart} />)}</div>
+    <div className="menu-footer-link"><Link className="button button-outline" href="/menu">See all {dishCount} dishes <ArrowRight size={15} /></Link><span>{priceNote}</span></div>
+    <CartBar cart={cart} />
   </section>
+}
+
+function MenuBanner({ group, index }: { group: MenuGroup; index: number }) {
+  const sections = menu.filter((section) => section.group === group)
+  const items = sections.reduce((sum, section) => sum + section.items.length, 0)
+  const photo = menuBanners[group]
+  return <div className={`menu-banner ${photo ? "menu-banner-photo" : ""}`} style={{ "--banner-accent": ["var(--gold)", "var(--orange)", "var(--turquoise)"][index % 3] } as React.CSSProperties}>
+    {photo && <Photo src={photo.src} alt={photo.alt} sizes="(max-width: 1180px) 100vw, 1180px" />}
+    <div className="menu-banner-copy"><span className="eyebrow eyebrow-light">{items} dishes · {sections.length} {sections.length === 1 ? "section" : "sections"}</span><h2>{group}</h2></div>
+    {photo ? <small className="menu-banner-caption">Serving suggestion</small> : <PalmMark light />}
+  </div>
+}
+
+function FullMenu() {
+  const cart = useCart()
+  const reducedMotion = useReducedMotion()
+  const [group, setGroup] = useState<MenuGroup>(menuGroups[0])
+  const [search, setSearch] = useState("")
+  const query = normalise(search.trim())
+  const results = useMemo(() => query
+    ? searchIndex.map(({ section, items }) => ({ section, items: items.filter((entry) => entry.text.includes(query)).map((entry) => entry.item) })).filter((result) => result.items.length)
+    : menu.filter((section) => section.group === group).map((section) => ({ section, items: section.items })), [group, query])
+  const matches = results.reduce((sum, result) => sum + result.items.length, 0)
+  function pickGroup(next: MenuGroup, tab: HTMLButtonElement) { setGroup(next); setSearch(""); tab.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "nearest", inline: "center" }) }
+  function jump(sectionId: string) { document.getElementById(`menu-${sectionId}`)?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" }) }
+  return <section id="menu" className="menu-section menu-page-section section-wrap">
+    <div className="menu-heading-note"><span className="veg-mark" /> 100% vegetarian <span className="note-divider">·</span> Jain food on request</div>
+    <div className="menu-tools menu-tools-full"><label className="menu-search"><Search size={16} /><input type="search" placeholder="Find a dish · English or मराठी" aria-label="Search all dishes" value={search} onChange={(e) => setSearch(e.target.value)} /></label></div>
+    <div className="menu-controls"><div className="category-tabs" role="tablist" aria-label="Menu groups">{menuGroups.map((item) => { const active = !query && group === item; return <button key={item} className={active ? "active" : ""} role="tab" aria-selected={active} onClick={(e) => pickGroup(item, e.currentTarget)}>{item}</button> })}</div></div>
+    {query
+      ? <p className="menu-results-count" aria-live="polite">{matches} {matches === 1 ? "dish matches" : "dishes match"} “{search.trim()}”</p>
+      : <><MenuBanner group={group} index={menuGroups.indexOf(group)} /><div className="menu-category-list" aria-label="Jump to section">{results.map(({ section }) => <button key={section.id} onClick={() => jump(section.id)}>{section.title}<ArrowDown size={14} /></button>)}</div></>}
+    {results.length ? results.map(({ section, items }) => <div className="menu-block" id={`menu-${section.id}`} key={section.id}>
+      <div className="menu-block-head"><h3>{section.title}</h3>{query && <span className="eyebrow">{section.group}</span>}{section.note && <p>{section.note}</p>}</div>
+      <div className="dish-grid">{items.map((item, index) => <DishCard key={itemId(section.id, item.name)} sectionId={section.id} item={item} index={index} cart={cart} />)}</div>
+    </div>) : <p className="empty-menu">No dishes found. Try another search.</p>}
+    <div className="menu-footer-link"><span>{priceNote}</span></div>
+    <CartBar cart={cart} />
+  </section>
+}
+
+function EveningsBand() {
+  return <section className="evenings-band" aria-labelledby="evenings-title"><Photo src="/images/garden-night.jpg" alt="Garden seating among the palms at dusk" sizes="100vw" /><div className="evenings-band-copy section-wrap"><span className="eyebrow eyebrow-light">After sunset</span><h2 id="evenings-title">Evenings at <em>Palm Paradise</em></h2><p>Dinner under the palms, open till 11:30 PM</p><a className="button button-sand" href={wa("Hello Hotel Palm Paradise! I'd like to reserve a table for dinner.")}>Reserve a table <ArrowRight size={16} /></a></div></section>
 }
 
 function VenuesSection() {
@@ -212,11 +303,11 @@ function GuestSection() {
 }
 
 function InstagramSection() {
-  return <section className="instagram-section"><div className="instagram-top"><div><span className="eyebrow">A little more of us</span><h2>Follow the <em>good times.</em></h2></div><a href={restaurant.instagram} target="_blank" rel="noreferrer" className="insta-follow"><Camera size={17} /> @hotelpalmparadise <span>2.7k followers</span></a></div><div className="instagram-photos">{photos.map((photo) => <a key={photo.src} href={restaurant.instagram} target="_blank" rel="noreferrer" aria-label={`See ${photo.alt} on Instagram`}><Photo src={photo.src} alt={photo.alt} sizes="20vw" /></a>)}</div></section>
+  return <section className="instagram-section"><div className="instagram-top"><div><span className="eyebrow">A little more of us</span><h2>Follow the <em>good times.</em></h2></div><a href={restaurant.instagram} target="_blank" rel="noreferrer" className="insta-follow"><Camera size={17} /> @hotelpalmparadise <span>2.7k followers</span></a></div><div className="instagram-photos">{photos.slice(0, 6).map((photo) => <a key={photo.src} href={restaurant.instagram} target="_blank" rel="noreferrer" aria-label={`See ${photo.alt} on Instagram`}><Photo src={photo.src} alt={photo.alt} sizes="20vw" /></a>)}</div></section>
 }
 
 function VisitSection() {
-  return <section id="visit" className="visit-section section-wrap"><div className="visit-copy"><span className="eyebrow">We&apos;ll leave the light on</span><h2>Come find <em>your way here.</em></h2><p className="visit-marathi">आमच्याकडे या, तुमचंच घर समजा.</p><div className="visit-detail"><MapPin size={19} /><div><b>Hotel Palm Paradise</b><p>{restaurant.address}<br />Opposite the HP petrol pump</p></div></div><div className="visit-detail"><Clock3 size={19} /><div><b>Every day, 8:00 AM – 11:30 PM</b><p>Open daily · Indian Standard Time</p></div></div><div className="visit-actions"><a className="button button-green" href={restaurant.directions} target="_blank" rel="noreferrer">Get directions <ArrowRight size={15} /></a><a className="button button-outline" href={`tel:+91${restaurant.phone}`}><Phone size={15} /> 8329085092</a></div></div><div className="map-wrap"><iframe title="Map to Hotel Palm Paradise, Kopargaon" src={restaurant.map} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /><a className="map-label" href={restaurant.directions} target="_blank" rel="noreferrer"><MapPin size={15} /> Nagar–Manmad Road · Kopargaon</a></div></section>
+  return <section id="visit" className="visit-section section-wrap"><div className="visit-copy"><span className="eyebrow">We&apos;ll leave the light on</span><h2>Come find <em>your way here.</em></h2><p className="visit-marathi">आमच्याकडे या, तुमचंच घर समजा.</p><div className="visit-detail"><MapPin size={19} /><div><b>Hotel Palm Paradise</b><p>{restaurant.address}<br />Opposite the HP petrol pump</p></div></div><div className="visit-detail"><Clock3 size={19} /><div><b>Every day, 8:00 AM – 11:30 PM</b><p>Open daily · Indian Standard Time</p></div></div><div className="visit-actions"><a className="button button-green" href={restaurant.directions} target="_blank" rel="noreferrer">Get directions <ArrowRight size={15} /></a><a className="button button-outline" href={`tel:+91${restaurant.phone}`}><Phone size={15} /> 8329085092</a></div></div><div className="visit-media"><div className="map-wrap"><iframe title="Map to Hotel Palm Paradise, Kopargaon" src={restaurant.map} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /><a className="map-label" href={restaurant.directions} target="_blank" rel="noreferrer"><MapPin size={15} /> Nagar–Manmad Road · Kopargaon</a></div><div className="visit-photo"><Photo src="/images/entrance-night.jpg" alt="The lit-up Palm Paradise entrance at night" sizes="(max-width: 760px) 100vw, 25vw" /></div></div></section>
 }
 
 function Footer() {
@@ -248,7 +339,7 @@ function BanquetEnquiry() {
 }
 
 function BanquetsPageContent() {
-  return <><section className="subpage-hero banquet-hero"><div className="subpage-hero-copy"><span className="eyebrow eyebrow-light">A place for all your people</span><h1>Gather beautifully.<br /><em>Celebrate together.</em></h1><p>From a family milestone to a conference, make it a day that feels like yours.</p><div className="subpage-hero-actions"><a href="#enquire" className="button button-sand">Plan your event <ArrowRight size={15} /></a><OpenStatus /></div></div><Photo src="/images/terrace-1.jpg" alt="The Palm Paradise rooftop terrace ready for an evening celebration" priority /></section><section className="banquet-intro section-wrap"><span className="eyebrow">Four ways to celebrate</span><h2>Find your <em>perfect setting.</em></h2><p className="intro-copy">A little more room, a little more time, a lot of reasons to come together.</p><div className="banquet-venues">{venues.map((venue, i) => <article className="banquet-venue" key={venue.name}><span className="banquet-index">0{i + 1}</span><div><h3>{venue.name}</h3><p>{venue.note}</p></div><span className="venue-capacity"><Users size={14} /> {venue.capacity}</span></article>)}</div><div className="occasion-chips">{eventOccasions.map((o) => <span key={o}>{o}</span>)}</div></section><section id="enquire" className="event-section"><div className="section-wrap event-section-inner"><div className="event-side"><span className="eyebrow eyebrow-light">A good day starts here</span><h2>We&apos;ll help with<br /><em>the little things.</em></h2><p>Vegetarian menus, warm service and spaces that bring people together. Tell us what you have in mind — we&apos;ll take it from there.</p><div className="event-side-detail"><Phone size={17} /><span>Prefer to talk? <a href={`tel:+91${restaurant.phone}`}>8329085092</a></span></div></div><BanquetEnquiry /></div></section></>
+  return <><section className="subpage-hero banquet-hero"><div className="subpage-hero-copy"><span className="eyebrow eyebrow-light">A place for all your people</span><h1>Gather beautifully.<br /><em>Celebrate together.</em></h1><p>From a family milestone to a conference, make it a day that feels like yours.</p><div className="subpage-hero-actions"><a href="#enquire" className="button button-sand">Plan your event <ArrowRight size={15} /></a><OpenStatus /></div></div><Photo src="/images/night-sign.jpg" alt="The Palm Paradise roadside sign glowing at night: Banquet / Lawns, Pure Veg" className="banquet-hero-photo" priority /></section><section className="banquet-intro section-wrap"><span className="eyebrow">Four ways to celebrate</span><h2>Find your <em>perfect setting.</em></h2><p className="intro-copy">A little more room, a little more time, a lot of reasons to come together.</p><div className="banquet-venues">{venues.map((venue, i) => <article className="banquet-venue" key={venue.name}><span className="banquet-index">0{i + 1}</span><div><h3>{venue.name}</h3><p>{venue.note}</p></div><span className="venue-capacity"><Users size={14} /> {venue.capacity}</span></article>)}</div><div className="occasion-chips">{eventOccasions.map((o) => <span key={o}>{o}</span>)}</div></section><section id="enquire" className="event-section"><div className="section-wrap event-section-inner"><div className="event-side"><span className="eyebrow eyebrow-light">A good day starts here</span><h2>We&apos;ll help with<br /><em>the little things.</em></h2><p>Vegetarian menus, warm service and spaces that bring people together. Tell us what you have in mind — we&apos;ll take it from there.</p><div className="event-side-detail"><Phone size={17} /><span>Prefer to talk? <a href={`tel:+91${restaurant.phone}`}>8329085092</a></span></div></div><BanquetEnquiry /></div></section></>
 }
 
 function EveningTint() {
@@ -258,11 +349,11 @@ function EveningTint() {
 }
 
 export function HomePage() {
-  return <><EveningTint /><Header /><main><Hero /><Marquee /><WelcomeSection /><TerraceSection /><MenuSection /><VenuesSection /><GallerySection /><GuestSection /><InstagramSection /><VisitSection /></main><Footer /><a className="floating-whatsapp" href={wa("Hello Hotel Palm Paradise!")} target="_blank" rel="noreferrer" aria-label="Chat with Hotel Palm Paradise on WhatsApp"><WhatsAppIcon size={21} /><span>Let&apos;s chat</span></a></>
+  return <><EveningTint /><Header /><main><Hero /><Marquee /><WelcomeSection /><TerraceSection /><MenuSection /><VenuesSection /><GallerySection /><GuestSection /><InstagramSection /><EveningsBand /><VisitSection /></main><Footer /><a className="floating-whatsapp" href={wa("Hello Hotel Palm Paradise!")} target="_blank" rel="noreferrer" aria-label="Chat with Hotel Palm Paradise on WhatsApp"><WhatsAppIcon size={21} /><span>Let&apos;s chat</span></a></>
 }
 
 export function MenuPage() {
-  return <><Header /><main><section className="simple-page-hero"><span className="eyebrow">Fresh from our kitchen</span><h1>Good things, <em>made veg.</em></h1><p>North Indian · South Indian · Chinese · Jain food on request</p><OpenStatus /></section><MenuSection full /><VisitSection /></main><Footer /></>
+  return <><Header solid /><main><section className="simple-page-hero"><span className="eyebrow">Fresh from our kitchen</span><h1>Good things, <em>made veg.</em></h1><p>Breakfast · North Indian · South Indian · Chinese · Shakes</p><OpenStatus /></section><FullMenu /><VisitSection /></main><Footer /></>
 }
 
 export function BanquetsPage() {

@@ -27,6 +27,7 @@ const restaurantJsonLd = {
   },
   image: `${siteUrl}/images/sunset-hero.jpg`,
   url: siteUrl,
+  hasMenu: `${siteUrl}/menu`,
   sameAs: ['https://www.instagram.com/hotelpalmparadise/'],
 }
 
