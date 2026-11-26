@@ -512,6 +512,11 @@ h1 em, h2 em { color: var(--orange); font-weight: 400; }
 .visit-media { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
 .visit-photo { height: 400px; overflow: hidden; border: 7px solid #fffcf5; box-shadow: 0 14px 44px #382d1d14; }
 .banquet-hero-photo .photo-image { object-position: center 42% !important; }
+/* Banquets hero (desktop): the portrait night-sign photo as a framed card, so the whole sign shows and stays sharp */
+@media (min-width: 761px) {
+  .banquet-hero::after { display: none; }
+  .subpage-hero > .banquet-hero-photo { inset: 112px max(24px, calc((100vw - 1180px) / 2)) 48px auto; width: min(30vw, 380px); height: auto; border-radius: var(--radius); box-shadow: 0 24px 60px #0b1a1266; }
+}
 /* Gallery: third row for the night photos */
 .gallery-grid { height: 705px; grid-template-rows: 1fr 1fr 1fr; }
 .gallery-tile-7 { grid-column: 1; grid-row: 3; }.gallery-tile-8 { grid-column: 2 / 4; grid-row: 3; }.gallery-tile-9 { grid-column: 4; grid-row: 3; }

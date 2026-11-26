@@ -12,6 +12,14 @@ import { SwayingPalm } from "@/components/swaying-palm"
 const wa = (message: string) => `https://wa.me/${restaurant.whatsapp}?text=${encodeURIComponent(message)}`
 const formatPrice = (price: number) => `₹${price.toLocaleString("en-IN")}`
 
+/** A link to the page you are already on does nothing in Next.js; scroll back to the top instead. */
+function toTopIfSamePage(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
+  if (window.location.pathname !== href || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+  e.preventDefault()
+  if (window.location.hash) window.history.replaceState(window.history.state, "", href)
+  window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+}
+
 function PalmMark({ light = false }: { light?: boolean }) {
   return <span className={`palm-mark ${light ? "palm-mark-light" : ""}`} aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 15.2c-.5 4.4-.9 8.8-1.1 12.5m1.2-12.6C12 11.4 8.1 9.8 4.8 9.9c1 3.4 4.2 5.7 10.8 5.4M16.1 15.1C11 8.7 10.5 5.1 11.1 2.9c3.4 1.2 5.3 4.7 5.2 12.2M16.2 15.1c1.2-7.3 3.5-10.3 6.7-11.1.4 3.6-1.6 7.3-6.7 11.1m.1 0c4.5-4.5 8.3-5.7 11.1-4.8-.8 3.5-4.2 5.5-11.1 4.8m-5.6 12.6h9.1" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
 }
@@ -78,10 +86,10 @@ function Header({ solid = false }: { solid?: boolean }) {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
   return <header className={`site-header ${solid || scrolled ? "header-solid" : ""}`}>
-    <Link href="/" className="brand" aria-label="Hotel Palm Paradise home"><PalmMark /><span><b>Palm Paradise</b><small>KOPARGAON · MAHARASHTRA</small></span></Link>
+    <Link href="/" className="brand" aria-label="Hotel Palm Paradise home" onClick={(e) => { setNavOpen(false); toTopIfSamePage(e, "/") }}><PalmMark /><span><b>Palm Paradise</b><small>KOPARGAON · MAHARASHTRA</small></span></Link>
     <button className="mobile-menu-button" onClick={() => setNavOpen(!navOpen)} aria-label={navOpen ? "Close navigation" : "Open navigation"} aria-expanded={navOpen}>{navOpen ? <X /> : <MenuIcon />}</button>
     <nav className={`main-nav ${navOpen ? "nav-open" : ""}`} aria-label="Main navigation">
-      <a href="/#terrace" onClick={() => setNavOpen(false)}>The terrace</a><Link href="/menu" onClick={() => setNavOpen(false)}>Menu</Link><Link href="/banquets" onClick={() => setNavOpen(false)}>Celebrations</Link><a href="/#visit" onClick={() => setNavOpen(false)}>Find us</a>
+      <a href="/#terrace" onClick={() => setNavOpen(false)}>The terrace</a><Link href="/menu" onClick={(e) => { setNavOpen(false); toTopIfSamePage(e, "/menu") }}>Menu</Link><Link href="/banquets" onClick={(e) => { setNavOpen(false); toTopIfSamePage(e, "/banquets") }}>Celebrations</Link><a href="/#visit" onClick={() => setNavOpen(false)}>Find us</a>
     </nav>
     <div className="header-actions"><a className="icon-call" href={`tel:+91${restaurant.phone}`} aria-label="Call Hotel Palm Paradise"><Phone size={17} /></a><a href={wa("Hello, I'd like to know more about Hotel Palm Paradise.")} className="header-whatsapp"><WhatsAppIcon size={16} /> WhatsApp</a></div>
   </header>
@@ -322,7 +330,7 @@ function Footer() {
     return () => observer.disconnect()
   }, [])
 
-  return <footer ref={footerRef} className={`site-footer ${isVisible ? "is-in-view" : "is-out-of-view"}`}><div className="footer-main"><Link href="/" className="footer-brand"><SwayingPalm className="footer-palm" /><span><b>Palm Paradise</b><small>WHERE TASTE MEETS ELEGANCE</small></span></Link><p>Good food. Warm welcomes.<br />A little paradise in Kopargaon.</p><div className="footer-links"><Link href="/menu">Menu</Link><Link href="/banquets">Banquets &amp; events</Link><a href={restaurant.instagram} target="_blank" rel="noreferrer">Instagram</a><a href={`tel:+91${restaurant.phone}`}>Call us</a></div><div className="footer-social"><a href={restaurant.instagram} target="_blank" rel="noreferrer" aria-label="Instagram"><Camera size={17} /></a><a href={wa("Hello Hotel Palm Paradise!")} aria-label="WhatsApp"><WhatsAppIcon size={17} /></a></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Hotel Palm Paradise · Kopargaon, Maharashtra</span><span>शुद्ध शाकाहारी · Pure vegetarian</span></div></footer>
+  return <footer ref={footerRef} className={`site-footer ${isVisible ? "is-in-view" : "is-out-of-view"}`}><div className="footer-main"><Link href="/" className="footer-brand" onClick={(e) => toTopIfSamePage(e, "/")}><SwayingPalm className="footer-palm" /><span><b>Palm Paradise</b><small>WHERE TASTE MEETS ELEGANCE</small></span></Link><p>Good food. Warm welcomes.<br />A little paradise in Kopargaon.</p><div className="footer-links"><Link href="/menu" onClick={(e) => toTopIfSamePage(e, "/menu")}>Menu</Link><Link href="/banquets" onClick={(e) => toTopIfSamePage(e, "/banquets")}>Banquets &amp; events</Link><a href={restaurant.instagram} target="_blank" rel="noreferrer">Instagram</a><a href={`tel:+91${restaurant.phone}`}>Call us</a></div><div className="footer-social"><a href={restaurant.instagram} target="_blank" rel="noreferrer" aria-label="Instagram"><Camera size={17} /></a><a href={wa("Hello Hotel Palm Paradise!")} aria-label="WhatsApp"><WhatsAppIcon size={17} /></a></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Hotel Palm Paradise · Kopargaon, Maharashtra</span><span>शुद्ध शाकाहारी · Pure vegetarian</span></div></footer>
 }
 
 function BanquetEnquiry() {
